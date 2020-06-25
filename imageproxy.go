@@ -24,6 +24,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/fcjr/aia-transport-go"
 	"io"
 	"io/ioutil"
 	"log"
@@ -99,7 +100,7 @@ type Proxy struct {
 // be used.
 func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 	if transport == nil {
-		transport = http.DefaultTransport
+		transport, _ = aia.NewTransport()
 	}
 	if cache == nil {
 		cache = NopCache
