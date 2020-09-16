@@ -171,7 +171,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.allowed(req); err != nil {
-		p.logf("%s: %v", err, req)
+		p.logf("%v, %s: %v", r.Header["X-Forwarded-For"], err, req)
 		http.Error(w, msgNotAllowed, http.StatusForbidden)
 		return
 	}
@@ -208,7 +208,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		msg := fmt.Sprintf("error fetching remote image: %v", err)
-		p.log(msg)
+		p.logf("%v, %s", r.Header["X-Forwarded-For"], msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 		metricRemoteErrors.Inc()
 		return
@@ -218,7 +218,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	cached := resp.Header.Get(httpcache.XFromCache) == "1"
 	if p.Verbose {
-		p.logf("request: %+v (served from cache: %t)", *actualReq, cached)
+		p.logf("%v, request: %+v (served from cache: %t)", r.Header["X-Forwarded-For"], *actualReq, cached)
 	}
 
 	if cached {
@@ -240,7 +240,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 		contentType = peekContentType(b)
 	}
 	if resp.ContentLength != 0 && !contentTypeMatches(p.ContentTypes, contentType) {
-		p.logf("content-type not allowed: %q", contentType)
+		p.logf("%v, content-type not allowed: %q", r.Header["X-Forwarded-For"], contentType)
 		http.Error(w, msgNotAllowed, http.StatusForbidden)
 		return
 	}
@@ -253,7 +253,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(resp.StatusCode)
 	if _, err := io.Copy(w, resp.Body); err != nil {
-		p.logf("error copying response: %v", err)
+		p.logf("%v, error copying response: %v", r.Header["X-Forwarded-For"], err)
 	}
 }
 
