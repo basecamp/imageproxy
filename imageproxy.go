@@ -491,6 +491,11 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return &http.Response{StatusCode: http.StatusNotModified}, nil
 	}
 
+        // Don't try to proxy anything > 128MB
+        if resp.ContentLength > 134217728 {
+		return nil, fmt.Errorf("content-length is too large: %v", resp.ContentLength)
+        }
+
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
