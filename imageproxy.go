@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"runtime"
 	"strings"
 	"time"
 
@@ -108,7 +107,6 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 		Transport: &TransformingTransport{
 			Transport:     transport,
 			CachingClient: client,
-			limiter:       make(chan struct{}, runtime.NumCPU()),
 			log: func(format string, v ...interface{}) {
 				if proxy.Verbose {
 					proxy.logf(format, v...)
@@ -465,8 +463,6 @@ type TransformingTransport struct {
 	// responses are properly cached.
 	CachingClient *http.Client
 
-	limiter chan struct{}
-
 	log func(format string, v ...interface{})
 }
 
@@ -478,13 +474,6 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 			t.log("fetching remote URL: %v", req.URL)
 		}
 		return t.Transport.RoundTrip(req)
-	}
-
-	if t.limiter != nil {
-		t.limiter <- struct{}{}
-		defer func() {
-			<-t.limiter
-		}()
 	}
 
 	f := req.URL.Fragment
