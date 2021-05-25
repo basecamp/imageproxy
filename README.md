@@ -1,5 +1,7 @@
 # imageproxy
 
+**Warning** This is a Basecamp fork for HEY with specific customizations that may not fit in with the upstream project.
+
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue)](https://pkg.go.dev/willnorris.com/go/imageproxy)
 [![Test Status](https://github.com/willnorris/imageproxy/workflows/tests/badge.svg)](https://github.com/willnorris/imageproxy/actions?query=workflow%3Atests)
 [![Test Coverage](https://codecov.io/gh/willnorris/imageproxy/branch/main/graph/badge.svg)](https://codecov.io/gh/willnorris/imageproxy)
@@ -142,7 +144,7 @@ enabled using the `-cache` flag.  It supports the following values:
 
        s3://fake-region/bucket/folder?endpoint=minio:9000&disableSSL=1&s3ForcePathStyle=1
 
-   Similarly, for [Digital Ocean Spaces](https://www.digitalocean.com/products/spaces/), 
+   Similarly, for [Digital Ocean Spaces](https://www.digitalocean.com/products/spaces/),
    provide a dummy region value and the appropriate endpoint for your space:
 
        s3://fake-region/bucket/folder?endpoint=sfo2.digitaloceanspaces.com
