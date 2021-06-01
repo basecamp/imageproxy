@@ -340,7 +340,7 @@ func contentTypeMatches(patterns []string, contentType string) bool {
 	return false
 }
 
-// hostMatches returns whether the host in u matches one of hosts.
+// hostMatches returns whether the host in u matches or resolves to one of hosts.
 func hostMatches(hosts []string, u *url.URL) bool {
 	for _, host := range hosts {
 		if u.Hostname() == host {
@@ -349,14 +349,16 @@ func hostMatches(hosts []string, u *url.URL) bool {
 		if strings.HasPrefix(host, "*.") && strings.HasSuffix(u.Hostname(), host[2:]) {
 			return true
 		}
-		// Checks whether the host in u is an IP
-		if ip := net.ParseIP(u.Hostname()); ip != nil {
+
+		if ip := lookupHost(u.Hostname()); ip != nil {
 			// Checks whether our current host is a CIDR
 			if _, ipnet, err := net.ParseCIDR(host); err == nil {
 				// Checks if our host contains the IP in u
 				if ipnet.Contains(ip) {
 					return true
 				}
+			} else if ip.String() == host {
+				return true
 			}
 		}
 	}
@@ -364,7 +366,20 @@ func hostMatches(hosts []string, u *url.URL) bool {
 	return false
 }
 
-// returns whether the referrer from the request is in the host list.
+// lookupHost returns the IP address the given hostname resolves to. If it's an IP, just returns it.
+func lookupHost(hostname string) net.IP {
+	if ip := net.ParseIP(hostname); ip != nil {
+		return ip
+	}
+
+	if resolvedAddrs, err := net.LookupHost(hostname); err == nil {
+		return net.ParseIP(resolvedAddrs[0])
+	}
+
+	return nil
+}
+
+// referrerMatches returns whether the referrer from the request is in the host list.
 func referrerMatches(hosts []string, r *http.Request) bool {
 	u, err := url.Parse(r.Header.Get("Referer"))
 	if err != nil { // malformed or blank header, just deny
