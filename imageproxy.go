@@ -8,6 +8,7 @@ package imageproxy // import "willnorris.com/go/imageproxy"
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -87,10 +88,10 @@ type Proxy struct {
 	UserAgent string
 }
 
-// NewProxy constructs a new proxy.  The provided http RoundTripper will be
+// NewProxy constructs a new proxy.  The provided HTTP Transport will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
+func NewProxy(transport *http.Transport, cache Cache) *Proxy {
 	if transport == nil {
 		transport, _ = aia.NewTransport()
 	}
@@ -100,6 +101,24 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 
 	proxy := &Proxy{
 		Cache: cache,
+	}
+
+	transport.DialContext = func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+		host, port, err := net.SplitHostPort(addr)
+	  if err != nil {
+	    return nil, err
+	  }
+
+    if ip := lookupHost(host); ip != nil {
+	if ipMatches(proxy.DenyHosts, ip) {
+		return nil, errDeniedHost
+	}
+
+	var dialer net.Dialer
+      return dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+    }
+
+    return
 	}
 
 	client := new(http.Client)
@@ -364,6 +383,23 @@ func hostMatches(hosts []string, u *url.URL) bool {
 	}
 
 	return false
+}
+
+// ipMatches returns whether ip matches any of the hosts or CIDR
+func ipMatches(hosts []string, ip net.IP) bool {
+    for _, host := range hosts {
+        // Checks whether our current host is a CIDR
+        if _, ipnet, err := net.ParseCIDR(host); err == nil {
+            // Checks if our host contains the IP in u
+            if ipnet.Contains(ip) {
+                return true
+            }
+        } else if ip.String() == host {
+            return true
+        }
+    }
+
+    return false
 }
 
 // lookupHost returns the IP address the given hostname resolves to. If it's an IP, just returns it.
