@@ -1,0 +1,1 @@
+A wrapper over AIA http.Transport with support for denied hosts.
