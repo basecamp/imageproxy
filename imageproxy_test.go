@@ -356,6 +356,8 @@ func (t testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		raw = "HTTP/1.1 200 OK\n\n"
 	case "/error":
 		return nil, errors.New("http protocol error")
+	case "/denied":
+		return nil, errors.New("address matches a denied host")
 	case "/nocontent":
 		raw = "HTTP/1.1 204 No Content\n\n"
 	case "/etag":
@@ -379,7 +381,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		Client: &http.Client{
 			Transport: testTransport{},
 		},
-		AllowHosts:   []string{"good.test"},
+		DenyHosts:   []string{"bad.test"},
 		ContentTypes: []string{"image/*"},
 	}
 
@@ -390,6 +392,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		{"/favicon.ico", http.StatusOK},
 		{"//foo", http.StatusBadRequest},                            // invalid request URL
 		{"/http://bad.test/", http.StatusForbidden},                 // Disallowed host
+		{"/http://local.test/denied", http.StatusForbidden},         // Denied host after resolving
 		{"/http://good.test/error", http.StatusInternalServerError}, // HTTP protocol error
 		{"/http://good.test/nocontent", http.StatusNoContent},       // non-OK response
 		{"/100/http://good.test/png", http.StatusOK},

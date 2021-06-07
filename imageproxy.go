@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"regexp"
 	"time"
 
 	"github.com/gregjones/httpcache"
@@ -202,9 +203,16 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := fmt.Sprintf("error fetching remote image: %v", err)
 		p.log(msg)
-		http.Error(w, msg, http.StatusInternalServerError)
-		metricRemoteErrors.Inc()
-		return
+		r, _ := regexp.Compile("address matches a denied host$")
+
+		if r.MatchString(err.Error()) {
+			http.Error(w, msgNotAllowed, http.StatusForbidden)
+			return
+		} else {
+			http.Error(w, msg, http.StatusInternalServerError)
+			metricRemoteErrors.Inc()
+			return
+		}
 	}
 	// close the original resp.Body, even if we wrap it in a NopCloser below
 	defer resp.Body.Close()
