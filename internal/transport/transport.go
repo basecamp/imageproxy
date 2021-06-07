@@ -20,7 +20,6 @@ func NewTransport(denyHosts []string) (*http.Transport, error) {
 		return nil, err
 	}
 
-	t.DialTLSContext = wrapDialContextWithDenyHosts(t.DialTLSContext, denyHosts)
 	t.DialContext = wrapDialContextWithDenyHosts(t.DialContext, denyHosts)
 
 	t.DialTLS = wrapDialWithDenyHosts(t.DialTLS, denyHosts)
