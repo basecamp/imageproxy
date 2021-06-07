@@ -32,7 +32,7 @@ func wrapDialContextWithDenyHosts(fn DialContextFn, denyHosts []string) (wrapped
 	if fn != nil {
 		wrappedFn = func(ctx context.Context, network string, addr string) (net.Conn, error) {
 			conn, err := fn(ctx, network, addr)
-			if _, denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
+			if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
 				return conn, err
 			} else {
 				return nil, denied
@@ -47,7 +47,7 @@ func wrapDialWithDenyHosts(fn DialFn, denyHosts []string) (wrappedFn DialFn) {
 	if fn != nil {
 		wrappedFn = func(network string, addr string) (net.Conn, error) {
 			conn, err := fn(network, addr)
-			if _, denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
+			if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
 				return conn, err
 			} else {
 				return nil, denied
@@ -59,10 +59,10 @@ func wrapDialWithDenyHosts(fn DialFn, denyHosts []string) (wrappedFn DialFn) {
 }
 
 // checkAddr returns resolved addr an error if addr matches any of the hosts or CIDR given
-func checkAddr(hosts []string, addr string) (string, error) {
-	host, port, err := net.SplitHostPort(addr)
+func checkAddr(hosts []string, addr string) error {
+	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
@@ -71,15 +71,13 @@ func checkAddr(hosts []string, addr string) (string, error) {
 		for _, host := range hosts {
 			if _, ipnet, err := net.ParseCIDR(host); err == nil {
 				if ipnet.Contains(ip) {
-					return "", errDeniedHost
+					return errDeniedHost
 				}
 			} else if ip.String() == host {
-				return "", errDeniedHost
+				return errDeniedHost
 			}
 		}
-
-		return net.JoinHostPort(ip.String(), port), nil
 	}
 
-	return addr, nil
+	return nil
 }
