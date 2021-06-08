@@ -28,6 +28,7 @@ import (
 	"willnorris.com/go/imageproxy"
 	"willnorris.com/go/imageproxy/internal/gcscache"
 	"willnorris.com/go/imageproxy/internal/s3cache"
+	denyHostsTransport "willnorris.com/go/imageproxy/internal/transport"
 )
 
 const defaultMemorySize = 100
@@ -57,12 +58,17 @@ func main() {
 	envy.Parse("IMAGEPROXY")
 	flag.Parse()
 
-	p := imageproxy.NewProxy(nil, cache.Cache)
+	parsedDenyHosts := []string{}
+	if *denyHosts != "" {
+		parsedDenyHosts = strings.Split(*denyHosts, ",")
+	}
+
+	transport, _ := denyHostsTransport.NewTransport(parsedDenyHosts)
+	p := imageproxy.NewProxy(transport, cache.Cache)
+
+	p.DenyHosts = parsedDenyHosts
 	if *allowHosts != "" {
 		p.AllowHosts = strings.Split(*allowHosts, ",")
-	}
-	if *denyHosts != "" {
-		p.DenyHosts = strings.Split(*denyHosts, ",")
 	}
 	if *referrers != "" {
 		p.Referrers = strings.Split(*referrers, ",")

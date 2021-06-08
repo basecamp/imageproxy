@@ -22,9 +22,9 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"regexp"
 	"time"
 
-	"github.com/fcjr/aia-transport-go"
 	"github.com/gregjones/httpcache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -92,7 +92,7 @@ type Proxy struct {
 // be used.
 func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 	if transport == nil {
-		transport, _ = aia.NewTransport()
+		transport = http.DefaultTransport
 	}
 	if cache == nil {
 		cache = NopCache
@@ -203,9 +203,16 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := fmt.Sprintf("error fetching remote image: %v", err)
 		p.log(msg)
-		http.Error(w, msg, http.StatusInternalServerError)
-		metricRemoteErrors.Inc()
-		return
+		r, _ := regexp.Compile("address matches a denied host$")
+
+		if r.MatchString(err.Error()) {
+			http.Error(w, msgNotAllowed, http.StatusForbidden)
+			return
+		} else {
+			http.Error(w, msg, http.StatusInternalServerError)
+			metricRemoteErrors.Inc()
+			return
+		}
 	}
 	// close the original resp.Body, even if we wrap it in a NopCloser below
 	defer resp.Body.Close()
@@ -349,6 +356,7 @@ func hostMatches(hosts []string, u *url.URL) bool {
 		if strings.HasPrefix(host, "*.") && strings.HasSuffix(u.Hostname(), host[2:]) {
 			return true
 		}
+
 		// Checks whether the host in u is an IP
 		if ip := net.ParseIP(u.Hostname()); ip != nil {
 			// Checks whether our current host is a CIDR
@@ -364,7 +372,7 @@ func hostMatches(hosts []string, u *url.URL) bool {
 	return false
 }
 
-// returns whether the referrer from the request is in the host list.
+// referrerMatches returns whether the referrer from the request is in the host list.
 func referrerMatches(hosts []string, r *http.Request) bool {
 	u, err := url.Parse(r.Header.Get("Referer"))
 	if err != nil { // malformed or blank header, just deny
