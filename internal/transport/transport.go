@@ -12,6 +12,8 @@ import (
 type DialContextFn func(ctx context.Context, network string, addr string) (net.Conn, error)
 type DialFn func(network string, addr string) (net.Conn, error)
 
+var zeroDialer net.Dialer
+
 // NewTransport returns a http.Transport that supports a deny list of hosts
 // that won't be dialed.
 func NewTransport(denyHosts []string) (*http.Transport, error) {
@@ -20,23 +22,30 @@ func NewTransport(denyHosts []string) (*http.Transport, error) {
 		return nil, err
 	}
 
-	t.DialContext = wrapDialContextWithDenyHosts(t.DialContext, denyHosts)
+	if t.DialContext != nil {
+		t.DialContext = wrapDialContextWithDenyHosts(t.DialContext, denyHosts)
+	} else if t.Dial != nil {
+		t.Dial = wrapDialWithDenyHosts(t.Dial, denyHosts)
+	} else {
+		t.DialContext = wrapDialContextWithDenyHosts(zeroDialer.DialContext, denyHosts)
+	}
 
-	t.DialTLS = wrapDialWithDenyHosts(t.DialTLS, denyHosts)
-	t.Dial = wrapDialWithDenyHosts(t.Dial, denyHosts)
+	// When there's no custom TLS dialer, dial and any custom non-TLS dialer is used
+	// so we'd be covered by the above wrapping
+	if t.DialTLS != nil {
+		t.DialTLS = wrapDialWithDenyHosts(t.DialTLS, denyHosts)
+	}
 
 	return t, nil
 }
 
 func wrapDialContextWithDenyHosts(fn DialContextFn, denyHosts []string) (wrappedFn DialContextFn) {
-	if fn != nil {
-		wrappedFn = func(ctx context.Context, network string, addr string) (net.Conn, error) {
-			conn, err := fn(ctx, network, addr)
-			if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
-				return conn, err
-			} else {
-				return nil, denied
-			}
+	wrappedFn = func(ctx context.Context, network string, addr string) (net.Conn, error) {
+		conn, err := fn(ctx, network, addr)
+		if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
+			return conn, err
+		} else {
+			return nil, denied
 		}
 	}
 
@@ -44,14 +53,12 @@ func wrapDialContextWithDenyHosts(fn DialContextFn, denyHosts []string) (wrapped
 }
 
 func wrapDialWithDenyHosts(fn DialFn, denyHosts []string) (wrappedFn DialFn) {
-	if fn != nil {
-		wrappedFn = func(network string, addr string) (net.Conn, error) {
-			conn, err := fn(network, addr)
-			if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
-				return conn, err
-			} else {
-				return nil, denied
-			}
+	wrappedFn = func(network string, addr string) (net.Conn, error) {
+		conn, err := fn(network, addr)
+		if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
+			return conn, err
+		} else {
+			return nil, denied
 		}
 	}
 
