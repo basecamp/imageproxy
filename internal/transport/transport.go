@@ -42,6 +42,10 @@ func NewTransport(denyHosts []string) (*http.Transport, error) {
 func wrapDialContextWithDenyHosts(fn DialContextFn, denyHosts []string) (wrappedFn DialContextFn) {
 	wrappedFn = func(ctx context.Context, network string, addr string) (net.Conn, error) {
 		conn, err := fn(ctx, network, addr)
+		if err != nil {
+			return conn, err
+		}
+
 		if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
 			return conn, err
 		} else {
@@ -55,6 +59,10 @@ func wrapDialContextWithDenyHosts(fn DialContextFn, denyHosts []string) (wrapped
 func wrapDialWithDenyHosts(fn DialFn, denyHosts []string) (wrappedFn DialFn) {
 	wrappedFn = func(network string, addr string) (net.Conn, error) {
 		conn, err := fn(network, addr)
+		if err != nil {
+			return conn, err
+		}
+
 		if denied := checkAddr(denyHosts, conn.RemoteAddr().String()); denied == nil {
 			return conn, err
 		} else {
