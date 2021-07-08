@@ -158,9 +158,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	req, err := NewRequest(r, p.DefaultBaseURL)
 	if err != nil {
-		msg := fmt.Sprintf("invalid request URL: %v", err)
-		p.log(msg)
-		http.Error(w, msg, http.StatusBadRequest)
+		p.log(fmt.Sprintf("%s: %v", msgInvalid, err))
+		http.Error(w, msgInvalid, http.StatusBadRequest)
 		return
 	}
 
@@ -301,6 +300,7 @@ var (
 
 	msgNotAllowed           = "requested URL is not allowed"
 	msgNotAllowedInRedirect = "requested URL in redirect is not allowed"
+	msgInvalid              = "requested URL is invalid"
 )
 
 // allowed determines whether the specified request contains an allowed
