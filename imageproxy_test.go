@@ -393,7 +393,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		Client: &http.Client{
 			Transport: testTransport{},
 		},
-		DenyHosts:   []string{"bad.test"},
+		DenyHosts:    []string{"bad.test"},
 		ContentTypes: []string{"image/*"},
 	}
 
