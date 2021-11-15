@@ -31,6 +31,9 @@ import (
 	tphttp "willnorris.com/go/imageproxy/third_party/http"
 )
 
+// Maximum number of redirection-followings allowed.
+const maxRedirects = 10
+
 // Proxy serves image requests.
 type Proxy struct {
 	Client *http.Client // client used to fetch remote URLs
@@ -190,11 +193,10 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if p.FollowRedirects {
 		// FollowRedirects is true (default), ensure that the redirected host is allowed
 		p.Client.CheckRedirect = func(newreq *http.Request, via []*http.Request) error {
-			if p.MaxRedirects > 0 && uint8(len(via)) > p.MaxRedirects {
+			if len(via) > maxRedirects {
 				if p.Verbose {
-					p.logf("followed too many redirects: %d", len(via))
+					p.logf("followed too many redirects (%d).", len(via))
 				}
-				http.Error(w, errTooManyRedirects.Error(), http.StatusBadRequest)
 				return errTooManyRedirects
 			}
 			if hostMatches(p.DenyHosts, newreq.URL) || (len(p.AllowHosts) > 0 && !hostMatches(p.AllowHosts, newreq.URL)) {
