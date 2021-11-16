@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gregjones/httpcache"
@@ -55,6 +55,11 @@ type Proxy struct {
 
 	// FollowRedirects controls whether imageproxy will follow redirects or not.
 	FollowRedirects bool
+
+	// MaxRedirects sets maximum number of redirection-followings allowed.
+	// Allowed values are in the range 0-254 where 0 represents no limits.
+	// This option is valid only when FollowRedirects is true.
+	MaxRedirects uint8
 
 	// DefaultBaseURL is the URL that relative remote URLs are resolved in
 	// reference to.  If nil, all remote URLs specified in requests must be
@@ -185,6 +190,13 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if p.FollowRedirects {
 		// FollowRedirects is true (default), ensure that the redirected host is allowed
 		p.Client.CheckRedirect = func(newreq *http.Request, via []*http.Request) error {
+			if p.MaxRedirects > 0 && uint8(len(via)) > p.MaxRedirects {
+				if p.Verbose {
+					p.logf("followed too many redirects: %d", len(via))
+				}
+				http.Error(w, errTooManyRedirects.Error(), http.StatusBadRequest)
+				return errTooManyRedirects
+			}
 			if hostMatches(p.DenyHosts, newreq.URL) || (len(p.AllowHosts) > 0 && !hostMatches(p.AllowHosts, newreq.URL)) {
 				http.Error(w, msgNotAllowedInRedirect, http.StatusForbidden)
 				return errNotAllowed
@@ -294,9 +306,10 @@ func copyHeader(dst, src http.Header, keys ...string) {
 }
 
 var (
-	errReferrer   = errors.New("request does not contain an allowed referrer")
-	errDeniedHost = errors.New("request contains a denied host")
-	errNotAllowed = errors.New("request does not contain an allowed host or valid signature")
+	errReferrer         = errors.New("request does not contain an allowed referrer")
+	errDeniedHost       = errors.New("request contains a denied host")
+	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
+	errTooManyRedirects = errors.New("too many redirects")
 
 	msgNotAllowed           = "requested URL is not allowed"
 	msgNotAllowedInRedirect = "requested URL in redirect is not allowed"
@@ -498,10 +511,10 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return &http.Response{StatusCode: http.StatusNotModified}, nil
 	}
 
-        // Don't try to proxy anything > 128MB
-        if resp.ContentLength > 134217728 {
+	// Don't try to proxy anything > 128MB
+	if resp.ContentLength > 134217728 {
 		return nil, fmt.Errorf("content-length is too large: %v", resp.ContentLength)
-        }
+	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

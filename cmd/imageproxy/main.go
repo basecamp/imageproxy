@@ -39,6 +39,7 @@ var denyHosts = flag.String("denyHosts", "", "comma separated list of denied rem
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var includeReferer = flag.Bool("includeReferer", false, "include referer header in remote requests")
 var followRedirects = flag.Bool("followRedirects", true, "follow redirects")
+var maxRedirects = flag.Uint("maxRedirects", 20, "maximum redirection-followings allowed: 0-254 range. 0 is no limit")
 var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
 var cache tieredCache
 var signatureKeys signatureKeyList
@@ -87,6 +88,7 @@ func main() {
 
 	p.IncludeReferer = *includeReferer
 	p.FollowRedirects = *followRedirects
+	p.MaxRedirects = uint8(*maxRedirects)
 	p.Timeout = *timeout
 	p.ScaleUp = *scaleUp
 	p.Verbose = *verbose

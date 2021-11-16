@@ -17,6 +17,8 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -369,7 +371,17 @@ func (t testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		raw = fmt.Sprintf("HTTP/1.1 200 OK\nContent-Length: %d\nContent-Type: image/png\n\n%s", len(img.Bytes()), img.Bytes())
 	default:
-		raw = "HTTP/1.1 404 Not Found\n\n"
+		redirectRegexp := regexp.MustCompile(`/redirects-(\d)`)
+		if redirectRegexp.MatchString(req.URL.Path) {
+			redirectsLeft, _ := strconv.ParseUint(redirectRegexp.FindStringSubmatch(req.URL.Path)[1], 10, 8)
+			if redirectsLeft == 0 {
+				raw = "HTTP/1.1 200 OK\n\n"
+			} else {
+				raw = fmt.Sprintf("HTTP/1.1 302\nLocation: /http://redirect.test/redirects-%d\n\n", redirectsLeft-1)
+			}
+		} else {
+			raw = "HTTP/1.1 404 Not Found\n\n"
+		}
 	}
 
 	buf := bufio.NewReader(bytes.NewBufferString(raw))
@@ -381,7 +393,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		Client: &http.Client{
 			Transport: testTransport{},
 		},
-		DenyHosts:   []string{"bad.test"},
+		DenyHosts:    []string{"bad.test"},
 		ContentTypes: []string{"image/*"},
 	}
 
@@ -432,6 +444,38 @@ func TestProxy_ServeHTTP_is304(t *testing.T) {
 	}
 	if got, want := resp.Header().Get("Etag"), `"tag"`; got != want {
 		t.Errorf("ServeHTTP(%v) returned etag header %v, want %v", req, got, want)
+	}
+}
+
+func TestProxy_ServeHTTP_maxRedirects(t *testing.T) {
+	p := &Proxy{
+		Client: &http.Client{
+			Transport: testTransport{},
+		},
+		FollowRedirects: true,
+	}
+
+	tests := []struct {
+		url          string
+		maxRedirects uint8
+		code         int
+	}{
+		{"/http://redirect.test/redirects-0", 2, http.StatusOK},
+		{"/http://redirect.test/redirects-2", 2, http.StatusOK},
+		{"/http://redirect.test/redirects-3", 2, http.StatusBadRequest}, // too many redirects
+		{"/http://redirect.test/redirects-3", 0, http.StatusOK},         // no limits
+		{"/http://redirect.test/redirects-3", 255, http.StatusOK},       // 255 is no limits too
+	}
+
+	for _, tt := range tests {
+		p.MaxRedirects = tt.maxRedirects
+		req, _ := http.NewRequest("GET", "http://localhost"+tt.url, nil)
+		resp := httptest.NewRecorder()
+		p.ServeHTTP(resp, req)
+
+		if got, want := resp.Code, tt.code; got != want {
+			t.Errorf("ServeHTTP(%v) returned status %d, want %d", req, got, want)
+		}
 	}
 }
 
