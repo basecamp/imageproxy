@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -214,16 +213,14 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := fmt.Sprintf("error fetching remote image: %v", err)
 		p.log(msg)
-		r, _ := regexp.Compile("address matches a denied host$")
 
-		if r.MatchString(err.Error()) {
+		if v, ok := err.(*url.Error); ok && v.Err.Error() == "address matches a denied host" {
 			http.Error(w, msgNotAllowed, http.StatusForbidden)
-			return
 		} else {
 			http.Error(w, msg, http.StatusInternalServerError)
 			metricRemoteErrors.Inc()
-			return
 		}
+		return
 	}
 	// close the original resp.Body, even if we wrap it in a NopCloser below
 	defer resp.Body.Close()
