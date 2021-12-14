@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -214,9 +213,8 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := fmt.Sprintf("error fetching remote image: %v", err)
 		p.log(msg)
-		r, _ := regexp.Compile("address matches a denied host$")
 
-		if r.MatchString(err.Error()) {
+		if errors.Is(err, ErrDeniedHost) {
 			http.Error(w, msgNotAllowed, http.StatusForbidden)
 			return
 		} else {
@@ -307,7 +305,7 @@ func copyHeader(dst, src http.Header, keys ...string) {
 
 var (
 	errReferrer         = errors.New("request does not contain an allowed referrer")
-	errDeniedHost       = errors.New("request contains a denied host")
+	ErrDeniedHost       = errors.New("request contains a denied host")
 	errNotAllowed       = errors.New("request does not contain an allowed host or valid signature")
 	errTooManyRedirects = errors.New("too many redirects")
 
@@ -325,7 +323,7 @@ func (p *Proxy) allowed(r *Request) error {
 	}
 
 	if hostMatches(p.DenyHosts, r.URL) {
-		return errDeniedHost
+		return ErrDeniedHost
 	}
 
 	if len(p.AllowHosts) == 0 && len(p.SignatureKeys) == 0 {

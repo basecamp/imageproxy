@@ -13,6 +13,7 @@ type DialContextFn func(ctx context.Context, network string, addr string) (net.C
 type DialFn func(network string, addr string) (net.Conn, error)
 
 var zeroDialer net.Dialer
+var ErrDeniedHost = errors.New("address matches a denied host")
 
 // NewTransport returns a http.Transport that supports a deny list of hosts
 // that won't be dialed.
@@ -81,15 +82,13 @@ func checkAddr(hosts []string, addr string) error {
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
-		errDeniedHost := errors.New("address matches a denied host")
-
 		for _, host := range hosts {
 			if _, ipnet, err := net.ParseCIDR(host); err == nil {
 				if ipnet.Contains(ip) {
-					return errDeniedHost
+					return ErrDeniedHost
 				}
 			} else if ip.String() == host {
-				return errDeniedHost
+				return ErrDeniedHost
 			}
 		}
 	}
