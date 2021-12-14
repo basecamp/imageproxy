@@ -371,7 +371,7 @@ func (t testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		raw = fmt.Sprintf("HTTP/1.1 200 OK\nContent-Length: %d\nContent-Type: image/png\n\n%s", len(img.Bytes()), img.Bytes())
 	default:
-		redirectRegexp := regexp.MustCompile(`/redirects-(\d)`)
+		redirectRegexp := regexp.MustCompile(`/redirects-(\d+)`)
 		if redirectRegexp.MatchString(req.URL.Path) {
 			redirectsLeft, _ := strconv.ParseUint(redirectRegexp.FindStringSubmatch(req.URL.Path)[1], 10, 8)
 			if redirectsLeft == 0 {
@@ -456,19 +456,15 @@ func TestProxy_ServeHTTP_maxRedirects(t *testing.T) {
 	}
 
 	tests := []struct {
-		url          string
-		maxRedirects uint8
-		code         int
+		url  string
+		code int
 	}{
-		{"/http://redirect.test/redirects-0", 2, http.StatusOK},
-		{"/http://redirect.test/redirects-2", 2, http.StatusOK},
-		{"/http://redirect.test/redirects-3", 2, http.StatusBadRequest}, // too many redirects
-		{"/http://redirect.test/redirects-3", 0, http.StatusOK},         // no limits
-		{"/http://redirect.test/redirects-3", 255, http.StatusOK},       // 255 is no limits too
+		{"/http://redirect.test/redirects-0", http.StatusOK},
+		{"/http://redirect.test/redirects-2", http.StatusOK},
+		{"/http://redirect.test/redirects-11", http.StatusInternalServerError}, // too many redirects
 	}
 
 	for _, tt := range tests {
-		p.MaxRedirects = tt.maxRedirects
 		req, _ := http.NewRequest("GET", "http://localhost"+tt.url, nil)
 		resp := httptest.NewRecorder()
 		p.ServeHTTP(resp, req)
