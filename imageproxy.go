@@ -239,7 +239,8 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	contentType, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-	if contentType == "" || contentType == "application/octet-stream" || contentType == "binary/octet-stream" {
+
+	if isInvalidContentType(contentType) {
 		// try to detect content type
 		b := bufio.NewReader(resp.Body)
 		resp.Body = ioutil.NopCloser(b)
@@ -270,6 +271,10 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, resp.Body); err != nil {
 		p.logf("error copying response: %v", err)
 	}
+}
+
+func isInvalidContentType(contentType string) bool {
+	return contentType == "" || contentType == "application/octet-stream" || contentType == "binary/octet-stream" || !strings.Contains(contentType, "/")
 }
 
 // peekContentType peeks at the first 512 bytes of p, and attempts to detect
