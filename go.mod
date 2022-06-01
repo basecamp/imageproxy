@@ -19,14 +19,12 @@ require (
 	github.com/muesli/smartcrop v0.3.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/peterbourgon/diskv v0.0.0-20171120014656-2973218375c3
-	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/prometheus/client_golang v1.12.2
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/satori/go.uuid v0.0.0-20180103174451-36e9d2ebbde5 // indirect
 	go.opencensus.io v0.22.6 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6
-	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd // indirect
 	google.golang.org/api v0.39.0 // indirect
 	google.golang.org/genproto v0.0.0-20210211154401-3a9a48ddfd6c // indirect
 	willnorris.com/go/gifresize v1.0.0
