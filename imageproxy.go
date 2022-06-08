@@ -274,7 +274,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func isInvalidContentType(contentType string) bool {
-	return contentType == "" || contentType == "application/octet-stream" || contentType == "binary/octet-stream" || !strings.Contains(contentType, "/")
+	return contentType == "" || contentType == "application/octet-stream" || contentType == "application/x-directory" || contentType == "binary/octet-stream" || !strings.Contains(contentType, "/")
 }
 
 // peekContentType peeks at the first 512 bytes of p, and attempts to detect
