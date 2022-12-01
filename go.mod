@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/PaulARoy/azurestoragecache v0.0.0-20170906084534-3c249a3ba788
-	github.com/aws/aws-sdk-go v1.37.10
+	github.com/aws/aws-sdk-go v1.44.150
 	github.com/die-net/lrucache v0.0.0-20190707192454-883874fe3947
 	github.com/disintegration/imaging v1.6.2
 	github.com/dnaeon/go-vcr v1.0.1 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/satori/go.uuid v0.0.0-20180103174451-36e9d2ebbde5 // indirect
 	go.opencensus.io v0.22.6 // indirect
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6
 	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd // indirect
 	google.golang.org/api v0.39.0 // indirect
