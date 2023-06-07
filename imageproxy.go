@@ -176,7 +176,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 
 	actualReq, _ := http.NewRequest("GET", req.String(), nil)
 	actualReq.Header.Set("Accept", "*/*")
-	actualReq.Header.Set("Accept-Language", "*")
+	actualReq.Header.Set("Accept-Language", "en-US,en;q=0.8")
 	if p.UserAgent != "" {
 		actualReq.Header.Set("User-Agent", p.UserAgent)
 	}
