@@ -13,7 +13,7 @@ require (
 	github.com/dnaeon/go-vcr v1.0.1 // indirect
 	github.com/fcjr/aia-transport-go v1.2.1
 	github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/muesli/smartcrop v0.3.0
