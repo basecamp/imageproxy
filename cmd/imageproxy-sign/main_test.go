@@ -20,6 +20,8 @@ func TestMainFunc(t *testing.T) {
 		t.Errorf("error creating pipe: %v", err)
 	}
 	defer r.Close()
+	origStdout := os.Stdout
+	defer func() { os.Stdout = origStdout }()
 	os.Stdout = w
 
 	main()

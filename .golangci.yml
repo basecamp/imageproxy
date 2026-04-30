@@ -22,3 +22,14 @@ issues:
     - path: internal/.*cache
       linters: gosec
       text: G(401|501)
+
+    # http.Transport's Dial/DialTLS fields are deprecated in favor of
+    # DialContext, but we wrap whichever is set on the underlying transport.
+    - path: internal/transport/transport.go
+      linters: staticcheck
+      text: SA1019
+
+    # The main proxy listener uses http.ListenAndServe; pre-existing.
+    - path: cmd/imageproxy/main.go
+      linters: gosec
+      text: G114
