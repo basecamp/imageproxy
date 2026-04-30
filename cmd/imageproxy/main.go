@@ -25,6 +25,7 @@ import (
 	rediscache "github.com/gregjones/httpcache/redis"
 	"github.com/jamiealquiza/envy"
 	"github.com/peterbourgon/diskv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"willnorris.com/go/imageproxy"
 	"willnorris.com/go/imageproxy/internal/gcscache"
 	"willnorris.com/go/imageproxy/internal/s3cache"
@@ -34,6 +35,7 @@ import (
 const defaultMemorySize = 100
 
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
+var metricsAddr = flag.String("metricsAddr", "", "TCP address for the metrics server. If set, /metrics is served only on this address and not on -addr.")
 var allowHosts = flag.String("allowHosts", "", "comma separated list of allowed remote hosts")
 var denyHosts = flag.String("denyHosts", "", "comma separated list of denied remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
@@ -98,6 +100,16 @@ func main() {
 	}
 
 	r := mux.NewRouter().SkipClean(true).UseEncodedPath()
+	if *metricsAddr != "" {
+		r.Handle("/metrics", http.NotFoundHandler())
+
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", promhttp.Handler())
+		go func() {
+			fmt.Printf("imageproxy metrics listening on %s\n", *metricsAddr)
+			log.Fatal(http.ListenAndServe(*metricsAddr, metricsMux))
+		}()
+	}
 	r.PathPrefix("/").Handler(p)
 	fmt.Printf("imageproxy listening on %s\n", server.Addr)
 	log.Fatal(http.ListenAndServe(*addr, r))
