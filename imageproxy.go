@@ -26,7 +26,6 @@ import (
 
 	"github.com/gregjones/httpcache"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	tphttp "willnorris.com/go/imageproxy/third_party/http"
 )
 
@@ -132,12 +131,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Path == "/" || r.URL.Path == "/health-check" {
 		fmt.Fprint(w, "OK")
-		return
-	}
-
-	if r.URL.Path == "/metrics" {
-		var h http.Handler = promhttp.Handler()
-		h.ServeHTTP(w, r)
 		return
 	}
 

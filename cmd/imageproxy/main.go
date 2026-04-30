@@ -101,14 +101,14 @@ func main() {
 
 	r := mux.NewRouter().SkipClean(true).UseEncodedPath()
 	if *metricsAddr != "" {
-		r.Handle("/metrics", http.NotFoundHandler())
-
 		metricsMux := http.NewServeMux()
 		metricsMux.Handle("/metrics", promhttp.Handler())
 		go func() {
 			fmt.Printf("imageproxy metrics listening on %s\n", *metricsAddr)
 			log.Fatal(http.ListenAndServe(*metricsAddr, metricsMux))
 		}()
+	} else {
+		r.Handle("/metrics", promhttp.Handler())
 	}
 	r.PathPrefix("/").Handler(p)
 	fmt.Printf("imageproxy listening on %s\n", server.Addr)
