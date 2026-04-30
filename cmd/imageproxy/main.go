@@ -95,11 +95,6 @@ func main() {
 	p.Verbose = *verbose
 	p.UserAgent = *userAgent
 
-	server := &http.Server{
-		Addr:    *addr,
-		Handler: p,
-	}
-
 	r := mux.NewRouter().SkipClean(true).UseEncodedPath()
 	if *metricsAddr != "" {
 		metricsListener, err := net.Listen("tcp", *metricsAddr)
@@ -108,15 +103,22 @@ func main() {
 		}
 		metricsMux := http.NewServeMux()
 		metricsMux.Handle("/metrics", promhttp.Handler())
+		metricsServer := &http.Server{
+			Handler:           metricsMux,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
 		fmt.Printf("imageproxy metrics listening on %s\n", metricsListener.Addr())
 		go func() {
-			log.Fatal(http.Serve(metricsListener, metricsMux))
+			if err := metricsServer.Serve(metricsListener); err != nil && err != http.ErrServerClosed {
+				log.Printf("imageproxy metrics server error: %v", err)
+			}
 		}()
+		r.Handle("/metrics", http.NotFoundHandler())
 	} else {
 		r.Handle("/metrics", promhttp.Handler())
 	}
 	r.PathPrefix("/").Handler(p)
-	fmt.Printf("imageproxy listening on %s\n", server.Addr)
+	fmt.Printf("imageproxy listening on %s\n", *addr)
 	log.Fatal(http.ListenAndServe(*addr, r))
 }
 
