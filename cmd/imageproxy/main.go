@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -101,11 +102,15 @@ func main() {
 
 	r := mux.NewRouter().SkipClean(true).UseEncodedPath()
 	if *metricsAddr != "" {
+		metricsListener, err := net.Listen("tcp", *metricsAddr)
+		if err != nil {
+			log.Fatalf("imageproxy metrics: failed to listen on %s: %v", *metricsAddr, err)
+		}
 		metricsMux := http.NewServeMux()
 		metricsMux.Handle("/metrics", promhttp.Handler())
+		fmt.Printf("imageproxy metrics listening on %s\n", metricsListener.Addr())
 		go func() {
-			fmt.Printf("imageproxy metrics listening on %s\n", *metricsAddr)
-			log.Fatal(http.ListenAndServe(*metricsAddr, metricsMux))
+			log.Fatal(http.Serve(metricsListener, metricsMux))
 		}()
 	} else {
 		r.Handle("/metrics", promhttp.Handler())

@@ -403,6 +403,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 	}{
 		{"/favicon.ico", http.StatusOK},
 		{"//foo", http.StatusBadRequest},                            // invalid request URL
+		{"/metrics", http.StatusBadRequest},                         // /metrics is not handled by the proxy library
 		{"/http://bad.test/", http.StatusForbidden},                 // Disallowed host
 		{"/http://local.test/denied", http.StatusForbidden},         // Denied host after resolving
 		{"/http://good.test/error", http.StatusInternalServerError}, // HTTP protocol error
